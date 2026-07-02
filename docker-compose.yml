@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:latest
+    container_name: healthai-mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin
+      MONGO_INITDB_DATABASE: healthai
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+    networks:
+      - healthai-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Flask Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: healthai-backend
+    environment:
+      FLASK_ENV: development
+      MONGODB_URI: mongodb://admin:admin@mongodb:27017/healthai?authSource=admin
+      JWT_SECRET: dev-secret-key-change-in-production
+      ENCRYPTION_KEY: your-32-byte-encryption-key-here
+      BREVO_SMTP_USER: ""
+      BREVO_SMTP_PASSWORD: ""
+      BREVO_SENDER_EMAIL: noreply@healthai.com
+      TWILIO_ACCOUNT_SID: ""
+      TWILIO_AUTH_TOKEN: ""
+      TWILIO_PHONE_NUMBER: ""
+      OPENAI_API_KEY: ""
+      CORS_ORIGIN: http://localhost:3000
+      PORT: 5000
+    ports:
+      - "5000:5000"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    networks:
+      - healthai-network
+    command: python run.py
+
+  # React Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: healthai-frontend
+    environment:
+      REACT_APP_API_BASE_URL: http://localhost:5000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - healthai-network
+    command: npm start
+
+networks:
+  healthai-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
+  mongodb_config:
