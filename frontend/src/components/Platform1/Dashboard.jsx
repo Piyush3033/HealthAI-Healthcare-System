@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import { hospitalsAPI, patientsAPI } from '../../services/api';
+import { patientsAPI } from '../../services/api';
 
 const Dashboard = () => {
   const { user } = useAuth();
