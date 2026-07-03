@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../context/ThemeContext';
 import { patientsAPI } from '../../services/api';
-import { Plus, Users, Calendar, Send } from 'lucide-react';
+import { Plus, Users, Send } from 'lucide-react';
 
 const Dashboard = () => {
   const { user } = useAuth();
