@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { referralsAPI } from '../../services/api';
 import { useTheme } from '../../context/ThemeContext';
 import { CheckCircle, XCircle, Clock } from 'lucide-react';
@@ -10,11 +10,7 @@ const Referrals = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    loadReferrals();
-  }, [activeTab]);
-
-  const loadReferrals = async () => {
+  const loadReferrals = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
@@ -33,7 +29,11 @@ const Referrals = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab]);
+
+  useEffect(() => {
+    loadReferrals();
+  }, [loadReferrals]);
 
   const handleAcceptReferral = async (referralId) => {
     try {
