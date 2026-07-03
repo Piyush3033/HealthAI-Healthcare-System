@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { recordsAPI } from '../../services/api';
 
@@ -11,13 +11,7 @@ const MedicalRecords = () => {
   const [total, setTotal] = useState(0);
   const [downloading, setDownloading] = useState(null);
 
-  useEffect(() => {
-    if (user?.patient_id) {
-      loadRecords();
-    }
-  }, [user?.patient_id, page]);
-
-  const loadRecords = async () => {
+  const loadRecords = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
@@ -31,7 +25,13 @@ const MedicalRecords = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user.patient_id, page]);
+
+  useEffect(() => {
+    if (user?.patient_id) {
+      loadRecords();
+    }
+  }, [loadRecords, user?.patient_id]);
 
   const handleDownload = async (recordId, title) => {
     try {
