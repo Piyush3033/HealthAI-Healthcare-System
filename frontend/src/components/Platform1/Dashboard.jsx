@@ -1,39 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
+import { useTheme } from '../../context/ThemeContext';
 import { patientsAPI } from '../../services/api';
+import { Plus, Users, Calendar, Send } from 'lucide-react';
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const { isDark } = useTheme();
   const [loading, setLoading] = useState(true);
+  const [showNewPatientForm, setShowNewPatientForm] = useState(false);
   const [stats, setStats] = useState({
     totalPatients: 0,
     recentAppointments: 0,
     pendingReferrals: 0
   });
   const [error, setError] = useState('');
+  const [newPatient, setNewPatient] = useState({
+    full_name: '',
+    email: '',
+    phone: '',
+    date_of_birth: '',
+    gender: 'male',
+    blood_group: 'O+'
+  });
 
   useEffect(() => {
-    const loadDashboardData = async () => {
-      try {
-        setLoading(true);
-        setError('');
-
-        // Fetch dashboard statistics
-        const patientsResponse = await patientsAPI.listPatients(1, 1);
-        
-        setStats({
-          totalPatients: patientsResponse.data.pagination?.total || 0,
-          recentAppointments: 12, // Would be fetched from API
-          pendingReferrals: 3 // Would be fetched from API
-        });
-      } catch (err) {
-        setError('Failed to load dashboard data');
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadDashboardData();
   }, []);
 
@@ -44,6 +35,48 @@ const Dashboard = () => {
       staff: 'Staff Member'
     };
     return roleLabels[user?.role] || user?.role;
+  };
+
+  const handleCreatePatient = async (e) => {
+    e.preventDefault();
+    try {
+      await patientsAPI.createPatient({
+        ...newPatient,
+        hospital_id: user.hospital_id
+      });
+      setNewPatient({
+        full_name: '',
+        email: '',
+        phone: '',
+        date_of_birth: '',
+        gender: 'male',
+        blood_group: 'O+'
+      });
+      setShowNewPatientForm(false);
+      setError('');
+      // Refresh stats
+      loadDashboardData();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to create patient');
+    }
+  };
+
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const patientsResponse = await patientsAPI.listPatients(1, 1);
+      setStats({
+        totalPatients: patientsResponse.data.pagination?.total || 0,
+        recentAppointments: 12,
+        pendingReferrals: 3
+      });
+    } catch (err) {
+      setError('Failed to load dashboard data');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (loading) {
@@ -111,6 +144,152 @@ const Dashboard = () => {
           </div>
         </div>
 
+        {/* Admin Patient Creation Section */}
+        {user?.role === 'admin' && (
+          <div className="mb-12">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">Patient Management</h2>
+              <button
+                onClick={() => setShowNewPatientForm(!showNewPatientForm)}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition"
+              >
+                <Plus className="w-5 h-5" />
+                Add New Patient
+              </button>
+            </div>
+
+            {showNewPatientForm && (
+              <div className={`${isDark ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow p-6 mb-6`}>
+                <h3 className={`text-lg font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                  Create New Patient
+                </h3>
+                <form onSubmit={handleCreatePatient} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Full Name
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={newPatient.full_name}
+                      onChange={(e) => setNewPatient({ ...newPatient, full_name: e.target.value })}
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none ${
+                        isDark
+                          ? 'bg-gray-700 border-gray-600 text-white'
+                          : 'bg-white border-gray-300 text-gray-900'
+                      }`}
+                    />
+                  </div>
+                  <div>
+                    <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={newPatient.email}
+                      onChange={(e) => setNewPatient({ ...newPatient, email: e.target.value })}
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none ${
+                        isDark
+                          ? 'bg-gray-700 border-gray-600 text-white'
+                          : 'bg-white border-gray-300 text-gray-900'
+                      }`}
+                    />
+                  </div>
+                  <div>
+                    <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Phone
+                    </label>
+                    <input
+                      type="tel"
+                      required
+                      value={newPatient.phone}
+                      onChange={(e) => setNewPatient({ ...newPatient, phone: e.target.value })}
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none ${
+                        isDark
+                          ? 'bg-gray-700 border-gray-600 text-white'
+                          : 'bg-white border-gray-300 text-gray-900'
+                      }`}
+                    />
+                  </div>
+                  <div>
+                    <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Date of Birth
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      value={newPatient.date_of_birth}
+                      onChange={(e) => setNewPatient({ ...newPatient, date_of_birth: e.target.value })}
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none ${
+                        isDark
+                          ? 'bg-gray-700 border-gray-600 text-white'
+                          : 'bg-white border-gray-300 text-gray-900'
+                      }`}
+                    />
+                  </div>
+                  <div>
+                    <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Gender
+                    </label>
+                    <select
+                      value={newPatient.gender}
+                      onChange={(e) => setNewPatient({ ...newPatient, gender: e.target.value })}
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none ${
+                        isDark
+                          ? 'bg-gray-700 border-gray-600 text-white'
+                          : 'bg-white border-gray-300 text-gray-900'
+                      }`}
+                    >
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className={`block text-sm font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Blood Group
+                    </label>
+                    <select
+                      value={newPatient.blood_group}
+                      onChange={(e) => setNewPatient({ ...newPatient, blood_group: e.target.value })}
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none ${
+                        isDark
+                          ? 'bg-gray-700 border-gray-600 text-white'
+                          : 'bg-white border-gray-300 text-gray-900'
+                      }`}
+                    >
+                      <option value="O+">O+</option>
+                      <option value="O-">O-</option>
+                      <option value="A+">A+</option>
+                      <option value="A-">A-</option>
+                      <option value="B+">B+</option>
+                      <option value="B-">B-</option>
+                      <option value="AB+">AB+</option>
+                      <option value="AB-">AB-</option>
+                    </select>
+                  </div>
+                  <div className="md:col-span-2 flex gap-2">
+                    <button
+                      type="submit"
+                      className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded-lg transition"
+                    >
+                      Create Patient
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPatientForm(false)}
+                      className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-900 font-semibold py-2 rounded-lg transition"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-white rounded-lg shadow p-6">
@@ -118,37 +297,18 @@ const Dashboard = () => {
             <ul className="space-y-3">
               <li>
                 <a href="/platform1/patients" className="text-indigo-600 hover:text-indigo-700 font-medium flex items-center">
-                  <span className="mr-2">→</span> View Patients
-                </a>
-              </li>
-              <li>
-                <a href="/platform1/records" className="text-indigo-600 hover:text-indigo-700 font-medium flex items-center">
-                  <span className="mr-2">→</span> View Medical Records
+                  <Users className="w-4 h-4 mr-2" /> View Patients
                 </a>
               </li>
               <li>
                 <a href="/platform1/referrals" className="text-indigo-600 hover:text-indigo-700 font-medium flex items-center">
-                  <span className="mr-2">→</span> Manage Referrals
+                  <Send className="w-4 h-4 mr-2" /> Manage Referrals
                 </a>
               </li>
-              {user?.role === 'admin' && (
-                <>
-                  <li>
-                    <a href="/platform1/users" className="text-indigo-600 hover:text-indigo-700 font-medium flex items-center">
-                      <span className="mr-2">→</span> Manage Users
-                    </a>
-                  </li>
-                  <li>
-                    <a href="/platform1/departments" className="text-indigo-600 hover:text-indigo-700 font-medium flex items-center">
-                      <span className="mr-2">→</span> Manage Departments
-                    </a>
-                  </li>
-                </>
-              )}
             </ul>
           </div>
 
-          {/* Recent Activity */}
+          {/* System Information */}
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">System Information</h2>
             <ul className="space-y-3 text-sm text-gray-600">
